@@ -2658,7 +2658,6 @@ class _BrowserScreenState extends State<BrowserScreen> {
   final Set<String> _blockedHosts = {};
   Set<String> _userAllowed = {};
   final Set<String> _mediaUrls = {};
-  final Set<String> _trustedThisSession = {};
 
   static const String _ua =
       'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -3314,31 +3313,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
                 },
 
                 // ---------- الشهادات ----------
+                // على iOS تستدعي المكتبة هذا الـ callback لكل اتصال HTTPS
+                // (حتى الشهادات السليمة تماماً تُصنَّف كـ"غير موثوقة" بسبب
+                // خلل في تقييم SecTrustResultType.unspecified) لذا لا فائدة
+                // من سؤال المستخدم في كل مرة — نمرّر مباشرة
                 onReceivedServerTrustAuthRequest: (c, challenge) async {
-                  final host = challenge.protectionSpace.host;
-                  if (_trustedThisSession.contains(host)) {
-                    return ServerTrustAuthResponse(
-                      action: ServerTrustAuthResponseAction.PROCEED,
-                    );
-                  }
-                  if (!mounted) {
-                    return ServerTrustAuthResponse(
-                      action: ServerTrustAuthResponseAction.CANCEL,
-                    );
-                  }
-                  final ok = await _confirm(
-                    context,
-                    title: 'شهادة غير موثوقة',
-                    message:
-                        'شهادة الأمان لـ $host غير صالحة أو منتهية.\nهل تريد المتابعة رغم ذلك؟',
-                    confirmLabel: 'متابعة',
-                    danger: true,
-                  );
-                  if (ok) _trustedThisSession.add(host);
                   return ServerTrustAuthResponse(
-                    action: ok
-                        ? ServerTrustAuthResponseAction.PROCEED
-                        : ServerTrustAuthResponseAction.CANCEL,
+                    action: ServerTrustAuthResponseAction.PROCEED,
                   );
                 },
 
