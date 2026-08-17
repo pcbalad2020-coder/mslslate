@@ -1839,24 +1839,48 @@ class _AdsterraSocialBarState extends State<_AdsterraSocialBar> {
 </html>
 ''';
 
-  /// يقيس الحجم الفعلي لمحتوى الإعلان ويبلغ فلاتر به
+  /// يقيس الحجم الفعلي لمحتوى الإعلان (بما فيه العناصر ذات position:fixed
+  /// كما هو شائع في ودجات الشريط الاجتماعي) ويبلغ فلاتر به مرة واحدة بعد
+  /// استقرار المحتوى — بلا الاستماع لحدث resize كي لا يدخل في حلقة تغذية
+  /// راجعة مع تغيير حجم الودجة في فلاتر نفسها
   static const String _sizeReportJS = r'''
 (function () {
+  var reported = null;
+  var pending = null;
+
+  function measure() {
+    var maxRight = 0, maxBottom = 0;
+    var els = document.body.querySelectorAll('*');
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      if (r.right > maxRight) maxRight = r.right;
+      if (r.bottom > maxBottom) maxBottom = r.bottom;
+    }
+    return { w: Math.ceil(maxRight), h: Math.ceil(maxBottom) };
+  }
+
   function report() {
     try {
-      var w = Math.ceil(document.body.scrollWidth);
-      var h = Math.ceil(document.body.scrollHeight);
-      if (w > 0 && h > 0 && window.flutter_inappwebview) {
-        window.flutter_inappwebview.callHandler('onAdSize', w, h);
+      var s = measure();
+      if (s.w <= 0 || s.h <= 0) return;
+      s.w = Math.min(s.w, 480);
+      s.h = Math.min(s.h, 480);
+      if (reported && Math.abs(reported.w - s.w) < 3 && Math.abs(reported.h - s.h) < 3) return;
+      reported = s;
+      if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler('onAdSize', s.w, s.h);
       }
     } catch (e) {}
   }
-  report();
-  window.addEventListener('resize', report);
-  if (window.ResizeObserver) {
-    new ResizeObserver(report).observe(document.body);
+
+  function scheduleReport() {
+    clearTimeout(pending);
+    pending = setTimeout(report, 400);
   }
-  new MutationObserver(report).observe(document.body, {
+
+  scheduleReport();
+  new MutationObserver(scheduleReport).observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
