@@ -2739,45 +2739,6 @@ class _BrowserScreenState extends State<BrowserScreen> {
     _controller?.reload();
   }
 
-  bool _isAllowedHost(String? host) {
-    if (host == null || host.isEmpty) return false;
-    final h = host.toLowerCase().replaceFirst('www.', '');
-    final base = widget.site.host;
-    if (base.isEmpty) return true;
-    if (h == base || h.endsWith('.$base')) return true;
-
-    final root = widget.site.rootHost;
-    if (h == root || h.endsWith('.$root')) return true;
-
-    for (final e in widget.site.extraHosts) {
-      final x = e.toLowerCase();
-      if (h == x || h.endsWith('.$x')) return true;
-    }
-    for (final e in _userAllowed) {
-      if (h == e || h.endsWith('.$e')) return true;
-    }
-
-    const allowExtras = [
-      'youtube.com',
-      'youtu.be',
-      'ytimg.com',
-      'google.com',
-      'gstatic.com',
-      'googleapis.com',
-      'cloudflare.com',
-      'jsdelivr.net',
-      'cloudfront.net',
-      'facebook.com',
-      'fbcdn.net',
-      'telegram.org',
-      't.me',
-    ];
-    for (final e in allowExtras) {
-      if (h == e || h.endsWith('.$e')) return true;
-    }
-    return false;
-  }
-
   // ---------- الوسائط ----------
 
   bool _looksLikeMedia(String url) {
@@ -3295,20 +3256,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     return NavigationActionPolicy.CANCEL;
                   }
 
-                  // مواقعك: لا حجب تحويلات حتى تعمل روابط إعلاناتك
-                  if (!widget.site.blockAds) {
-                    return NavigationActionPolicy.ALLOW;
-                  }
-
-                  if (!_isAllowedHost(uri.host)) {
-                    if (mounted) {
-                      setState(() {
-                        _blockedCount++;
-                        if (uri.host.isNotEmpty) _blockedHosts.add(uri.host);
-                      });
-                    }
-                    return NavigationActionPolicy.CANCEL;
-                  }
+                  // فتح جميع المواقع بلا حجب نطاقات — يسمح لتحويلات المشغّلات
+                  // والإعلانات بالمرور بدل قطع سلسلة التحويل وكسر الصفحة
                   return NavigationActionPolicy.ALLOW;
                 },
 
@@ -3326,6 +3275,22 @@ class _BrowserScreenState extends State<BrowserScreen> {
                 // ---------- التحميل ----------
                 onDownloadStartRequest: (c, req) async {
                   final url = req.url.toString();
+                  final mime = (req.mimeType ?? '').toLowerCase();
+                  // WKWebView على iOS يصنّف روابط بث الفيديو أحياناً كـ"تحميل"
+                  // فيقفز إلى Safari بلا داعٍ — نلتقطها كرابط وسائط بدلاً من ذلك
+                  if (mime.startsWith('video') ||
+                      mime.startsWith('audio') ||
+                      _looksLikeMedia(url)) {
+                    _addMedia(url);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('أُضيف رابط فيديو — افتحه من زر التشغيل'),
+                        ),
+                      );
+                    }
+                    return;
+                  }
                   final messenger = ScaffoldMessenger.of(context);
                   try {
                     await launchUrl(
