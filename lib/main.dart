@@ -2632,20 +2632,31 @@ class _BrowserScreenState extends State<BrowserScreen> {
     });
   }
 
-  /// يتحقق أن الصفحة حمّلت محتوى فعلياً بعد اكتمال التحميل
+  static const String _pageScoreJS = '''
+    (function () {
+      if (!document.body) return 0;
+      var t = (document.body.innerText || '').trim().length;
+      var m = document.querySelectorAll('video, iframe, img').length;
+      return t + (m * 50);
+    })();
+  ''';
+
+  Future<int> _pageContentScore(InAppWebViewController c) async {
+    final res = await c.evaluateJavascript(source: _pageScoreJS);
+    return res is int ? res : int.tryParse('$res') ?? 1;
+  }
+
+  /// يتحقق أن الصفحة حمّلت محتوى فعلياً بعد اكتمال التحميل.
+  /// كثير من المواقع تعرض محتواها لاحقاً عبر جافاسكربت (SPA، تحقّق كلاودفلير،
+  /// إعلانات بينية) لذا لا نحكم بأنها فارغة إلا بعد إمهالها فرصة ثانية.
   Future<void> _verifyPageLoaded(InAppWebViewController c) async {
     try {
-      final res = await c.evaluateJavascript(
-        source: '''
-        (function () {
-          if (!document.body) return 0;
-          var t = (document.body.innerText || '').trim().length;
-          var m = document.querySelectorAll('video, iframe, img').length;
-          return t + (m * 50);
-        })();
-      ''',
-      );
-      final score = res is int ? res : int.tryParse('$res') ?? 1;
+      var score = await _pageContentScore(c);
+      if (score < 5) {
+        await Future.delayed(const Duration(seconds: 3));
+        if (!mounted) return;
+        score = await _pageContentScore(c);
+      }
       if (score < 5 && mounted) {
         setState(() {
           _errorText = 'الصفحة فارغة';
@@ -3285,7 +3296,9 @@ class _BrowserScreenState extends State<BrowserScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('أُضيف رابط فيديو — افتحه من زر التشغيل'),
+                          content: Text(
+                            'أُضيف رابط فيديو — افتحه من زر التشغيل',
+                          ),
                         ),
                       );
                     }
