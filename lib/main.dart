@@ -3283,6 +3283,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
                   );
                 },
 
+                // على أجهزة آيفون الحقيقية (بخلاف المحاكي الذي يملك ذاكرة
+                // الماك الوفيرة) يوقِف iOS عملية WKWebView عند ضغط الذاكرة
+                // فتظهر صفحة بيضاء/فارغة تماماً بلا أي خطأ يمكن رصده بجافاسكربت.
+                // نعيد تحميل الصفحة تلقائياً في هذه الحالة بدل تركها فارغة.
+                onWebContentProcessDidTerminate: (c) {
+                  c.reload();
+                },
+
                 // ---------- التحميل ----------
                 onDownloadStartRequest: (c, req) async {
                   final url = req.url.toString();
