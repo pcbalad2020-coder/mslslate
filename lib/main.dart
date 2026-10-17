@@ -229,8 +229,11 @@ class Store {
   static Future<List<SavedItem>> history() => _readList(kHistory);
 
   static Future<void> recordVisit(SavedItem item) async {
+    final url = item.url.trim();
+    if (url.isEmpty || url == 'about:blank') return;
+
     final list = await history();
-    list.removeWhere((e) => e.siteName == item.siteName);
+    list.removeWhere((e) => e.url == url || e.siteName == item.siteName);
     list.insert(0, item);
     if (list.length > 12) list.removeRange(12, list.length);
     await _writeList(kHistory, list);
@@ -783,10 +786,13 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   Future<void> _openSite(SiteInfo site, {String? startUrl}) async {
+    final url = (startUrl != null && startUrl.trim().isNotEmpty)
+        ? startUrl.trim()
+        : site.url;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BrowserScreen(site: site, startUrl: startUrl),
+        builder: (_) => BrowserScreen(site: site, startUrl: url),
       ),
     );
     _loadAll();
@@ -831,6 +837,47 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceHi,
+                  border: Border.all(color: AppColors.line),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  leading: const Icon(
+                    Icons.travel_explore_rounded,
+                    color: AppColors.accent,
+                  ),
+                  title: const Text(
+                    'بحث في كل المواقع',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: const Text(
+                    'يفتح لك نتائج البحث في جميع المواقع المفعّلة',
+                    style: TextStyle(fontSize: 11.5),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_left,
+                    color: AppColors.accent,
+                    size: 20,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            SearchAllSitesScreen(query: q, sites: _allSites),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               ..._allSites.map(
                 (s) => ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -1059,40 +1106,82 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(18, 13, 18, 9),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ماذا تشاهد اليوم؟',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'ابحث في مواقعك المفضلة من مكان واحد',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.white.withValues(alpha: 0.48),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.local_movies_outlined,
+                      color: AppColors.accent2,
+                      size: 25,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: TextField(
                   controller: _searchCtrl,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _runSearch(),
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'ابحث عن مسلسل أو فيلم…',
+                    hintText: 'اسم مسلسل أو فيلم',
                     hintStyle: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.35),
                     ),
                     prefixIcon: const Icon(
-                      Icons.search,
+                      Icons.search_rounded,
                       color: AppColors.accent,
-                      size: 20,
+                      size: 21,
                     ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_circle_left_outlined,
-                        size: 22,
+                    suffixIcon: Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 5),
+                      child: IconButton.filled(
+                        tooltip: 'بحث',
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.black,
+                        ),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                        onPressed: _runSearch,
                       ),
-                      onPressed: _runSearch,
                     ),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
                     filled: true,
                     fillColor: AppColors.surface,
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(17),
                       borderSide: const BorderSide(color: AppColors.line),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(17),
                       borderSide: const BorderSide(
                         color: AppColors.accentSoft,
                         width: 1.4,
@@ -1264,6 +1353,182 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class SearchAllSitesScreen extends StatelessWidget {
+  final String query;
+  final List<SiteInfo> sites;
+
+  const SearchAllSitesScreen({
+    super.key,
+    required this.query,
+    required this.sites,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = query.trim();
+    return Scaffold(
+      appBar: AppBar(title: const Text('البحث الشامل')),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: [Color(0xFF243B53), Color(0xFF101019)],
+                ),
+                border: Border.all(color: AppColors.line),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.travel_explore_rounded,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          normalizedQuery,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'اختر موقعًا لعرض نتائج البحث فيه',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${sites.length}',
+                    style: const TextStyle(
+                      color: AppColors.accent2,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: Text(
+              'المواقع المتاحة',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.55),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              itemCount: sites.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 9),
+              itemBuilder: (context, index) {
+                final site = sites[index];
+                final url = site.searchUrl(normalizedQuery);
+                return Material(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              BrowserScreen(site: site, startUrl: url),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.line),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          _SiteMark(site: site, size: 44),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  site.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  site.host,
+                                  textDirection: TextDirection.ltr,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withValues(alpha: 0.42),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.arrow_outward_rounded,
+                            color: site.color,
+                            size: 19,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ============================================================
 //  ٨) عناصر الواجهة المشتركة
 // ============================================================
@@ -1421,6 +1686,8 @@ class _SavedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final title = item.title.trim().isEmpty ? item.siteName : item.title;
+
     return SizedBox(
       width: 230,
       child: Material(
@@ -1445,26 +1712,42 @@ class _SavedCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    item.title.isEmpty ? item.siteName : item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        starred
+                            ? Icons.bookmark_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 15,
+                        color: starred ? AppColors.accent : item.color,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(
-                      starred
-                          ? Icons.bookmark_rounded
-                          : Icons.play_circle_fill_rounded,
-                      size: 15,
-                      color: starred ? AppColors.accent : item.color,
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: item.color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -2404,6 +2687,16 @@ class _BrowserScreenState extends State<BrowserScreen> {
   Set<String> _userAllowed = {};
   final Set<String> _mediaUrls = {};
 
+  String get _safeCurrentUrl {
+    final raw = _currentUrl.trim();
+    return raw.isNotEmpty && raw != 'about:blank' ? raw : widget.site.url;
+  }
+
+  String get _safeCurrentTitle {
+    final raw = _currentTitle.trim();
+    return raw.isNotEmpty ? raw : widget.site.name;
+  }
+
   static String get _ua {
     if (Platform.isIOS) {
       return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
@@ -2769,8 +3062,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
   // ---------- المفضلة والسجل ----------
 
   SavedItem _buildItem() => SavedItem(
-    title: _currentTitle,
-    url: _currentUrl,
+    title: _safeCurrentTitle,
+    url: _safeCurrentUrl,
     siteName: widget.site.name,
     colorValue: widget.site.colorValue,
     savedAt: DateTime.now().millisecondsSinceEpoch,
@@ -2787,9 +3080,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   Future<void> _recordVisit() async {
-    if (_currentUrl.isEmpty) return;
-    final normalized = _currentUrl.replaceAll(RegExp(r'/$'), '');
-    if (normalized == widget.site.url.replaceAll(RegExp(r'/$'), '')) return;
+    final current = _currentUrl.trim();
+    if (current.isEmpty || current == 'about:blank') return;
+
+    final normalized = current.replaceAll(RegExp(r'/$'), '');
+    final siteBase = widget.site.url.replaceAll(RegExp(r'/$'), '');
+    if (normalized == siteBase) return;
+
     await Store.recordVisit(_buildItem());
   }
 
