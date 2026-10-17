@@ -956,276 +956,296 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _loading
-              ? const Center(
+    if (_loading) {
+      return Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 168,
+              backgroundColor: AppColors.bg,
+              actions: [
+                IconButton(
+                  tooltip: 'المفضلة',
+                  icon: const Icon(Icons.bookmark_border_rounded),
+                  onPressed: _openFavorites,
+                ),
+                IconButton(
+                  tooltip: 'الإعدادات',
+                  icon: const Icon(Icons.tune_rounded),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                    _loadAll();
+                  },
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsetsDirectional.only(
+                  start: 20,
+                  bottom: 16,
+                ),
+                title: const Text(
+                  kAppName,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                background: const _HeroBackground(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 220,
+                child: const Center(
                   child: CircularProgressIndicator(color: AppColors.accent),
-                )
-              : RefreshIndicator(
-                  color: AppColors.accent,
-                  backgroundColor: AppColors.surface,
-                  onRefresh: _loadAll,
-                  child: CustomScrollView(
-                    slivers: [
-                      // ---------- الترويسة ----------
-                      SliverAppBar(
-                        pinned: true,
-                        expandedHeight: 168,
-                        backgroundColor: AppColors.bg,
-                        actions: [
-                          IconButton(
-                            tooltip: 'المفضلة',
-                            icon: const Icon(Icons.bookmark_border_rounded),
-                            onPressed: _openFavorites,
-                          ),
-                          IconButton(
-                            tooltip: 'الإعدادات',
-                            icon: const Icon(Icons.tune_rounded),
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen(),
-                                ),
-                              );
-                              _loadAll();
-                            },
-                          ),
-                        ],
-                        flexibleSpace: FlexibleSpaceBar(
-                          titlePadding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            bottom: 16,
-                          ),
-                          title: const Text(
-                            kAppName,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          background: const _HeroBackground(),
-                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        backgroundColor: AppColors.surface,
+        onRefresh: _loadAll,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 168,
+              backgroundColor: AppColors.bg,
+              actions: [
+                IconButton(
+                  tooltip: 'المفضلة',
+                  icon: const Icon(Icons.bookmark_border_rounded),
+                  onPressed: _openFavorites,
+                ),
+                IconButton(
+                  tooltip: 'الإعدادات',
+                  icon: const Icon(Icons.tune_rounded),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                    _loadAll();
+                  },
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsetsDirectional.only(
+                  start: 20,
+                  bottom: 16,
+                ),
+                title: const Text(
+                  kAppName,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                background: const _HeroBackground(),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextField(
+                  controller: _searchCtrl,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _runSearch(),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'ابحث عن مسلسل أو فيلم…',
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.accent,
+                      size: 20,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_circle_left_outlined,
+                        size: 22,
                       ),
-
-                      // ---------- البحث ----------
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: TextField(
-                            controller: _searchCtrl,
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: (_) => _runSearch(),
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'ابحث عن مسلسل أو فيلم…',
-                              hintStyle: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white.withValues(alpha: 0.35),
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: AppColors.accent,
-                                size: 20,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.arrow_circle_left_outlined,
-                                  size: 22,
-                                ),
-                                onPressed: _runSearch,
-                              ),
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.surface,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: AppColors.line,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: AppColors.accentSoft,
-                                  width: 1.4,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      onPressed: _runSearch,
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: AppColors.line),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.accentSoft,
+                        width: 1.4,
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
-                      // ---------- عمليات بحث سابقة ----------
-                      if (_recentSearches.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                ..._recentSearches.map(
-                                  (q) => ActionChip(
-                                    label: Text(
-                                      q,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    backgroundColor: AppColors.surface,
-                                    side: const BorderSide(
-                                      color: AppColors.line,
-                                    ),
-                                    avatar: const Icon(
-                                      Icons.history,
-                                      size: 15,
-                                      color: AppColors.accentSoft,
-                                    ),
-                                    onPressed: () {
-                                      _searchCtrl.text = q;
-                                      _runSearch(q);
-                                    },
-                                  ),
-                                ),
-                                ActionChip(
-                                  label: const Text(
-                                    'مسح',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  backgroundColor: Colors.transparent,
-                                  side: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.12),
-                                  ),
-                                  onPressed: () async {
-                                    await Store.clearRecentSearches();
-                                    if (!mounted) return;
-                                    setState(() => _recentSearches = []);
-                                  },
-                                ),
-                              ],
-                            ),
+            if (_recentSearches.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ..._recentSearches.map(
+                        (q) => ActionChip(
+                          label: Text(q, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: AppColors.surface,
+                          side: const BorderSide(color: AppColors.line),
+                          avatar: const Icon(
+                            Icons.history,
+                            size: 15,
+                            color: AppColors.accentSoft,
                           ),
-                        ),
-
-                      // ---------- متابعة المشاهدة ----------
-                      if (_history.isNotEmpty) ...[
-                        SliverToBoxAdapter(
-                          child: _SectionHeader(
-                            title: 'أكمل من حيث توقفت',
-                            actionLabel: 'مسح',
-                            onAction: () async {
-                              await Store.clearHistory();
-                              _loadAll();
-                            },
-                          ),
-                        ),
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: 112,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              itemCount: _history.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 12),
-                              itemBuilder: (context, i) {
-                                final item = _history[i];
-                                return _SavedCard(
-                                  item: item,
-                                  onTap: () => _openSite(
-                                    _siteForName(item.siteName),
-                                    startUrl: item.url,
-                                  ),
-                                  onLongPress: () async {
-                                    await Store.removeHistory(item.url);
-                                    _loadAll();
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      // ---------- المفضلة ----------
-                      if (_favorites.isNotEmpty) ...[
-                        SliverToBoxAdapter(
-                          child: _SectionHeader(
-                            title: 'المفضلة',
-                            actionLabel: 'الكل',
-                            onAction: _openFavorites,
-                          ),
-                        ),
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: 112,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              itemCount: _favorites.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 12),
-                              itemBuilder: (context, i) {
-                                final item = _favorites[i];
-                                return _SavedCard(
-                                  item: item,
-                                  starred: true,
-                                  onTap: () => _openSite(
-                                    _siteForName(item.siteName),
-                                    startUrl: item.url,
-                                  ),
-                                  onLongPress: () async {
-                                    await Store.removeFavorite(item.url);
-                                    _loadAll();
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      // ---------- المواقع ----------
-                      SliverToBoxAdapter(
-                        child: _SectionHeader(
-                          title: 'المواقع',
-                          actionLabel: 'إضافة',
-                          onAction: _addSiteDialog,
-                        ),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        sliver: SliverList.separated(
-                          itemCount: _allSites.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final site = _allSites[i];
-                            return _SiteBanner(
-                              site: site,
-                              onTap: () => _openSite(site),
-                              onLongPress: site.isCustom
-                                  ? () => _removeSite(site)
-                                  : null,
-                            );
+                          onPressed: () {
+                            _searchCtrl.text = q;
+                            _runSearch(q);
                           },
                         ),
                       ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      ActionChip(
+                        label: const Text(
+                          'مسح',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                        onPressed: () async {
+                          await Store.clearRecentSearches();
+                          if (!mounted) return;
+                          setState(() => _recentSearches = []);
+                        },
+                      ),
                     ],
                   ),
                 ),
-        ],
+              ),
+
+            if (_history.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: _SectionHeader(
+                  title: 'أكمل من حيث توقفت',
+                  actionLabel: 'مسح',
+                  onAction: () async {
+                    await Store.clearHistory();
+                    _loadAll();
+                  },
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 112,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _history.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) {
+                      final item = _history[i];
+                      return _SavedCard(
+                        item: item,
+                        onTap: () => _openSite(
+                          _siteForName(item.siteName),
+                          startUrl: item.url,
+                        ),
+                        onLongPress: () async {
+                          await Store.removeHistory(item.url);
+                          _loadAll();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+
+            if (_favorites.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: _SectionHeader(
+                  title: 'المفضلة',
+                  actionLabel: 'الكل',
+                  onAction: _openFavorites,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 112,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _favorites.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) {
+                      final item = _favorites[i];
+                      return _SavedCard(
+                        item: item,
+                        starred: true,
+                        onTap: () => _openSite(
+                          _siteForName(item.siteName),
+                          startUrl: item.url,
+                        ),
+                        onLongPress: () async {
+                          await Store.removeFavorite(item.url);
+                          _loadAll();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+
+            SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'المواقع',
+                actionLabel: 'إضافة',
+                onAction: _addSiteDialog,
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              sliver: SliverList.separated(
+                itemCount: _allSites.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, i) {
+                  final site = _allSites[i];
+                  return _SiteBanner(
+                    site: site,
+                    onTap: () => _openSite(site),
+                    onLongPress: site.isCustom ? () => _removeSite(site) : null,
+                  );
+                },
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
       ),
     );
   }
@@ -2359,17 +2379,19 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   /// يتحقق أن الصفحة حمّلت محتوى فعلياً بعد اكتمال التحميل.
-  /// كثير من المواقع تعرض محتواها لاحقاً عبر جافاسكربت (SPA، تحقّق كلاودفلير،
-  /// إعلانات بينية) لذا لا نحكم بأنها فارغة إلا بعد إمهالها فرصة ثانية.
+  /// على iPhone كثير من المواقع تُحمّل عبر JavaScript أو تتأخر في ظهور النص؛
+  /// لذلك لا نعرض خطأ "فارغة" إلا عندما تكون فعلاً لا توجد صفحة مرئية.
   Future<void> _verifyPageLoaded(InAppWebViewController c) async {
     try {
+      if (!mounted) return;
+      final threshold = Platform.isIOS ? 2 : 5;
       var score = await _pageContentScore(c);
-      if (score < 5) {
-        await Future.delayed(const Duration(seconds: 3));
+      if (score < threshold) {
+        await Future.delayed(const Duration(seconds: 1));
         if (!mounted) return;
         score = await _pageContentScore(c);
       }
-      if (score < 5 && mounted) {
+      if (score < threshold && Platform.isAndroid && mounted) {
         setState(() {
           _errorText = 'الصفحة فارغة';
           _errorDetail = 'قد يكون النطاق تغيّر أو الموقع محجوب';
@@ -2382,9 +2404,15 @@ class _BrowserScreenState extends State<BrowserScreen> {
   Set<String> _userAllowed = {};
   final Set<String> _mediaUrls = {};
 
-  static const String _ua =
-      'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) '
-      'Chrome/120.0.0.0 Mobile Safari/537.36';
+  static String get _ua {
+    if (Platform.isIOS) {
+      return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+          'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
+          'Mobile/15E148 Safari/604.1';
+    }
+    return 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+  }
 
   String get _allowKey => '${Store.kAllowPrefix}${widget.site.host}';
 
@@ -2395,6 +2423,10 @@ class _BrowserScreenState extends State<BrowserScreen> {
     useOnDownloadStart: true,
     mediaPlaybackRequiresUserGesture: false,
     allowsInlineMediaPlayback: true,
+    allowFileAccess: true,
+    allowContentAccess: true,
+    allowsAirPlayForMediaPlayback: true,
+    allowsPictureInPictureMediaPlayback: true,
     iframeAllowFullscreen: true,
     javaScriptEnabled: true,
     transparentBackground: true,
@@ -2407,6 +2439,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     allowsBackForwardNavigationGestures: true,
     allowsLinkPreview: false,
     disableLongPressContextMenuOnLinks: true,
+    supportZoom: true,
   );
 
   /// تُحقن في كل الإطارات (بما فيها إطار المشغّل)
@@ -2975,6 +3008,11 @@ class _BrowserScreenState extends State<BrowserScreen> {
                   if (uri == null) return NavigationActionPolicy.ALLOW;
 
                   final scheme = uri.scheme.toLowerCase();
+                  if (scheme == 'about' ||
+                      scheme == 'blob' ||
+                      scheme == 'data') {
+                    return NavigationActionPolicy.ALLOW;
+                  }
                   if (scheme != 'http' && scheme != 'https') {
                     return NavigationActionPolicy.CANCEL;
                   }
